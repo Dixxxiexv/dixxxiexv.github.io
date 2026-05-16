@@ -1,777 +1,691 @@
-<!-- Elemen head untuk memuat link font atau resource eksternal jika dibutuhkan, 
-     namun untuk Heroicons kita akan menggunakan inline SVG via CDN url secara dinamis -->
-<script>
-  import { debounce } from 'lodash-es'; // opsional, bisa pakai setTimeout manual
-
-  // Data awal (dalam ribuan jiwa) dengan tambahan properti 'island' untuk fitur filter region
-  const provinsiData = [
-    { name: "Aceh", pop: 5554.8, island: "Sumatera" },
-    { name: "Sumatera Utara", pop: 15588.5, island: "Sumatera" },
-    { name: "Sumatera Barat", pop: 5836.2, island: "Sumatera" },
-    { name: "Riau", pop: 6728.1, island: "Sumatera" },
-    { name: "Kep. Riau", pop: 2183.3, island: "Sumatera" },
-    { name: "Jambi", pop: 3724.3, island: "Sumatera" },
-    { name: "Sumatera Selatan", pop: 8837.3, island: "Sumatera" },
-    { name: "Kep. Bangka Belitung", pop: 1531.5, island: "Sumatera" },
-    { name: "Bengkulu", pop: 2112.2, island: "Sumatera" },
-    { name: "Lampung", pop: 9419.6, island: "Sumatera" },
-    { name: "DKI Jakarta", pop: 10684.9, island: "Jawa" },
-    { name: "Jawa Barat", pop: 50345.2, island: "Jawa" },
-    { name: "Banten", pop: 12431.4, island: "Jawa" },
-    { name: "Jawa Tengah", pop: 37892.3, island: "Jawa" },
-    { name: "DI Yogyakarta", pop: 3759.5, island: "Jawa" },
-    { name: "Jawa Timur", pop: 41814.5, island: "Jawa" },
-    { name: "Kalimantan Barat", pop: 5695.5, island: "Kalimantan" },
-    { name: "Kalimantan Tengah", pop: 2809.7, island: "Kalimantan" },
-    { name: "Kalimantan Selatan", pop: 4273.4, island: "Kalimantan" },
-    { name: "Kalimantan Timur", pop: 4045.9, island: "Kalimantan" },
-    { name: "Kalimantan Utara", pop: 739.8, island: "Kalimantan" },
-    { name: "Sulawesi Utara", pop: 2701.8, island: "Sulawesi" },
-    { name: "Gorontalo", pop: 1227.8, island: "Sulawesi" },
-    { name: "Sulawesi Tengah", pop: 3121.8, island: "Sulawesi" },
-    { name: "Sulawesi Selatan", pop: 9463.4, island: "Sulawesi" },
-    { name: "Sulawesi Barat", pop: 1503.2, island: "Sulawesi" },
-    { name: "Sulawesi Tenggara", pop: 2793.1, island: "Sulawesi" },
-    { name: "Bali", pop: 4433.3, island: "Nusa Tenggara & Bali" },
-    { name: "Nusa Tenggara Barat", pop: 5646, island: "Nusa Tenggara & Bali" },
-    { name: "Nusa Tenggara Timur", pop: 5656, island: "Nusa Tenggara & Bali" },
-    { name: "Maluku", pop: 1945.6, island: "Maluku & Papua" },
-    { name: "Maluku Utara", pop: 1355.6, island: "Maluku & Papua" },
-    { name: "Papua Barat", pop: 1205.8, island: "Maluku & Papua" },
-    { name: "Papua", pop: 4542.6, island: "Maluku & Papua" }
-  ];
-
-  const totalPop = 281603.8; // total penduduk Indonesia (ribuan)
-  const maxPop = Math.max(...provinsiData.map(d => d.pop)); // untuk skala bar
-  const minPopData = Math.min(...provinsiData.map(d => d.pop)); // nilai terendah asli
-
-  // State filter asli
-  let searchQuery = "";
-  let minPop = 0;
-  let maxPopFilter = maxPop; // default max asli
-  let minPercent = 0;
-  let maxPercent = 100;
-
-  // Filter Berdasarkan Wilayah/Pulau Besar
-  let selectedIsland = "Semua";
-
-  // State Pengurutan Eksplisit Menggunakan Dropdown Berdasarkan Pilihan User
-  // Pilihan: "pop-desc" (Terbesar), "pop-asc" (Terkecil), "name-asc" (A-Z), "name-desc" (Z-A)
-  let currentSortRule = "pop-desc"; 
-
-  // State Toggle Highlight Ekstrem
-  let enableHighlight = true;
-
-  // URL CDN Heroicons v2 (Outline style) untuk disematkan sebagai background mask atau citra visual
-  const iconSearch = "https://unpkg.com/heroicons@2.0.18/24/outline/magnifying-glass.svg";
-  const iconGlobe = "https://unpkg.com/heroicons@2.0.18/24/outline/globe-asia-australia.svg";
-  const iconAdjustments = "https://unpkg.com/heroicons@2.0.18/24/outline/adjustments-horizontal.svg";
-  const iconChart = "https://unpkg.com/heroicons@2.0.18/24/outline/chart-bar.svg";
-  const iconSort = "https://unpkg.com/heroicons@2.0.18/24/outline/arrows-up-down.svg";
-  const iconLightBulb = "https://unpkg.com/heroicons@2.0.18/24/outline/light-bulb.svg";
-  const iconExclamation = "https://unpkg.com/heroicons@2.0.18/24/outline/exclamation-triangle.svg";
-
-  // Helper: hitung persen
-  function getPercent(pop) {
-    return (pop / totalPop) * 100;
-  }
-
-  // Menggabungkan validasi ke dalam satu block untuk menghindari Cyclical Dependency
-  $: {
-    if (minPop > maxPopFilter) {
-      minPop = maxPopFilter;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+  <title>Populasi Provinsi Indonesia 2024 | Visual Interaktif</title>
+  <!-- Font & style dasar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    if (minPercent > maxPercent) {
-      minPercent = maxPercent;
+
+    body {
+      background: linear-gradient(135deg, #e9f0f9 0%, #f3f6fc 100%);
+      font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-  }
 
-  // Data terfilter berdasarkan semua filter text, range, persentase, dan wilayah pulau
-  $: filteredData = provinsiData.filter(prov => {
-    const matchName = prov.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchPop = prov.pop >= minPop && prov.pop <= maxPopFilter;
-    const percent = getPercent(prov.pop);
-    const matchPercent = percent >= minPercent && percent <= maxPercent;
-    const matchIsland = selectedIsland === "Semua" || prov.island === selectedIsland;
-
-    return matchName && matchPop && matchPercent && matchIsland;
-  });
-
-  // Proses Pengurutan Data Berdasarkan Aturan Dropdown yang Dipilih Secara Eksplisit
-  $: sortedFiltered = [...filteredData].sort((a, b) => {
-    if (currentSortRule === "pop-desc") {
-      return b.pop - a.pop;
-    } else if (currentSortRule === "pop-asc") {
-      return a.pop - b.pop;
-    } else if (currentSortRule === "name-asc") {
-      return a.name.localeCompare(b.name);
-    } else if (currentSortRule === "name-desc") {
-      return b.name.localeCompare(a.name);
+    .container {
+      width: 100%;
+      max-width: 1250px;
+      margin: 1rem auto;
+      padding: 1.8rem 2rem;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(18px);
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 40px rgba(0, 20, 40, 0.12), 0 8px 20px rgba(0,0,0,0.05);
+      border: 1px solid rgba(203, 213, 225, 0.5);
     }
-    return 0;
-  });
 
-  // Jumlah data yang tampil
-  $: shownCount = sortedFiltered.length;
-</script>
+    h1 {
+      font-size: 1.9rem;
+      text-align: center;
+      color: #0b3b5c;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
 
+    .header-icon {
+      display: inline-block;
+      width: 34px;
+      height: 34px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      filter: drop-shadow(0 2px 4px rgba(0,80,150,0.2));
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #285b7a;
+      margin-bottom: 2rem;
+      font-weight: 500;
+      font-size: 1rem;
+      background: #ecf3fa;
+      display: inline-block;
+      padding: 0.4rem 1.6rem;
+      border-radius: 40px;
+      margin-left: auto;
+      margin-right: auto;
+      width: fit-content;
+    }
+
+    .inline-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      vertical-align: middle;
+      margin-right: 0.3rem;
+      opacity: 0.75;
+    }
+
+    .filters-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.3fr 1.3fr;
+      gap: 1.2rem;
+      background: #f9fcff;
+      padding: 1.4rem 1.4rem;
+      border-radius: 24px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.03);
+      border: 1px solid #e9eff6;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .filter-group label {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #1e3b4f;
+    }
+
+    .input-with-icon {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .prefix-icon {
+      position: absolute;
+      left: 12px;
+      width: 18px;
+      height: 18px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      pointer-events: none;
+      opacity: 0.5;
+      z-index: 2;
+    }
+
+    .filter-group input[type="text"],
+    .input-with-icon select {
+      width: 100%;
+      padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+      border: 1px solid #cfdde9;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      color: #1e3b4f;
+      background: white;
+      height: 42px;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .filter-group input[type="number"] {
+      width: 100%;
+      padding: 0.6rem 0.4rem;
+      border: 1px solid #cfdde9;
+      border-radius: 14px;
+      font-size: 0.85rem;
+      color: #1e3b4f;
+      background: white;
+      height: 42px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .filter-group input:focus,
+    .input-with-icon select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+
+    .range-inputs {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .range-inputs input {
+      flex: 1;
+      min-width: 60px;
+    }
+
+    .range-inputs span {
+      color: #5f7d9c;
+      font-weight: 500;
+    }
+
+    .slider-wrapper {
+      position: relative;
+      height: 14px;
+      margin-top: 0.2rem;
+    }
+
+    .slider-wrapper::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 6px;
+      background: #dce5f0;
+      border-radius: 10px;
+      z-index: 1;
+    }
+
+    .dual-range-slider {
+      position: absolute;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      background: transparent;
+      pointer-events: none;
+      top: 50%;
+      transform: translateY(-50%);
+      margin: 0;
+      z-index: 2;
+      height: 6px;
+    }
+
+    .dual-range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #2563eb;
+      border: 2px solid white;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .interactive-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 0.9rem 1.5rem;
+      border-radius: 18px;
+      margin-bottom: 1.2rem;
+      border: 1px solid #e2eaf5;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .sort-control-group {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .sort-control-group label {
+      font-weight: 700;
+      color: #1e3b4f;
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .sort-control-group select {
+      padding: 0.5rem 1rem 0.5rem 2.4rem;
+      border: 2px solid #2563eb;
+      border-radius: 12px;
+      font-weight: 600;
+      color: #0c3b6b;
+      background: #eef4ff;
+      cursor: pointer;
+      height: 40px;
+    }
+
+    .right-meta {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .toggle-highlight {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: #2c4b6b;
+      cursor: pointer;
+    }
+
+    .chart-container {
+      background: white;
+      border-radius: 24px;
+      padding: 1rem 0.6rem;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.04);
+      border: 1px solid #e9f0f8;
+    }
+
+    .header-row {
+      display: flex;
+      font-weight: 700;
+      padding: 0.8rem 0.6rem;
+      background: #f4f9ff;
+      border-radius: 14px 14px 0 0;
+      color: #1f486b;
+      font-size: 0.85rem;
+      border-bottom: 2px solid #dce5f0;
+    }
+
+    .province-label { width: 250px; flex-shrink: 0; padding-left: 0.8rem; }
+    .bar-label { flex-grow: 1; padding-left: 1rem; }
+    .jumlah-label { width: 140px; text-align: right; padding-right: 0.5rem; }
+    .percent-label { width: 110px; text-align: right; padding-right: 1rem; }
+
+    .bars-list {
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+
+    .bar-item {
+      display: flex;
+      align-items: center;
+      padding: 0.7rem 0.5rem;
+      border-bottom: 1px solid #f0f4fc;
+      transition: background 0.2s;
+    }
+
+    .province-name {
+      width: 250px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .name-text {
+      font-weight: 650;
+      color: #0b2b44;
+    }
+
+    .region-tag {
+      font-size: 0.65rem;
+      background: #e6edf6;
+      padding: 0.15rem 0.4rem;
+      border-radius: 6px;
+    }
+
+    .bar-wrapper {
+      flex-grow: 1;
+      background: #e9eff6;
+      border-radius: 20px;
+      margin: 0 1rem;
+      height: 18px;
+      overflow: hidden;
+    }
+
+    .bar {
+      background: linear-gradient(90deg, #2563eb, #1e3a8a);
+      height: 100%;
+      border-radius: 20px;
+      width: 0%;
+    }
+
+    .pop-number {
+      width: 140px;
+      text-align: right;
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    .percent-value {
+      width: 110px;
+      text-align: right;
+      background: #f1f6fd;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem;
+      color: #b91c1c;
+      background: #fee2e2;
+      border-radius: 20px;
+      margin: 1rem;
+    }
+
+    @media (max-width: 1000px) {
+      .filters-panel { grid-template-columns: 1fr 1fr; }
+      .province-label, .province-name { width: 180px; }
+    }
+  </style>
+</head>
+<body>
 <div class="container">
   <h1>
-    <span class="header-icon" style="background-image: url({iconChart});"></span>
+    <span class="header-icon" id="iconChart"></span>
     Jumlah Penduduk per Provinsi di Indonesia (2024)
   </h1>
-  <p class="subtitle">
-    Total penduduk Indonesia: <strong>{totalPop.toLocaleString('id-ID')} rb</strong> jiwa
-  </p>
+  <p class="subtitle" id="totalDisplay"></p>
 
-  <!-- Panel filter -->
   <div class="filters-panel">
     <div class="filter-group">
-      <label for="searchQuery">
-        <span class="inline-icon" style="background-image: url({iconSearch});"></span>
-        Filter Nama Provinsi
-      </label>
+      <label><span class="inline-icon" id="iconSearch1"></span>Filter Nama</label>
       <div class="input-with-icon">
-        <span class="prefix-icon" style="background-image: url({iconSearch});"></span>
-        <input id="searchQuery" type="text" placeholder="Cari nama provinsi..." bind:value={searchQuery} />
+        <span class="prefix-icon" id="iconSearch2"></span>
+        <input type="text" id="searchInput" placeholder="Cari provinsi...">
       </div>
     </div>
-
     <div class="filter-group">
-      <label id="islandFilterLabel" for="islandSelect">
-        <span class="inline-icon" style="background-image: url({iconGlobe});"></span>
-        Filter Wilayah/Pulau
-      </label>
+      <label><span class="inline-icon" id="iconGlobe1"></span>Wilayah</label>
       <div class="input-with-icon">
-        <span class="prefix-icon" style="background-image: url({iconGlobe});"></span>
-        <select id="islandSelect" bind:value={selectedIsland} aria-labelledby="islandFilterLabel">
-          <option value="Semua">Semua Wilayah</option>
-          <option value="Sumatera">Pulau Sumatera</option>
-          <option value="Jawa">Pulau Jawa</option>
-          <option value="Kalimantan">Pulau Kalimantan</option>
-          <option value="Sulawesi">Pulau Sulawesi</option>
-          <option value="Nusa Tenggara & Bali">Nusa Tenggara & Bali</option>
-          <option value="Maluku & Papua">Maluku & Papua</option>
-        </select>
+        <span class="prefix-icon" id="iconGlobe2"></span>
+        <select id="islandSelect"></select>
       </div>
     </div>
-
     <div class="filter-group">
-      <label>
-        <span class="inline-icon" style="background-image: url({iconAdjustments});"></span>
-        Filter Jumlah Penduduk (ribu jiwa)
-      </label>
+      <label><span class="inline-icon" id="iconAdj1"></span>Populasi (ribu)</label>
       <div class="range-inputs">
-        <input type="number" bind:value={minPop} min="0" max={maxPop} step="100" aria-label="Batas Minimum Populasi" />
-        <span> - </span>
-        <input type="number" bind:value={maxPopFilter} min="0" max={maxPop} step="100" aria-label="Batas Maksimum Populasi" />
+        <input type="number" id="minPopInput" step="100">
+        <span>-</span>
+        <input type="number" id="maxPopInput" step="100">
       </div>
       <div class="slider-wrapper">
-        <input type="range" bind:value={minPop} min="0" max={maxPop} step="100" class="dual-range-slider" aria-label="Slider Batas Minimum Populasi" />
-        <input type="range" bind:value={maxPopFilter} min="0" max={maxPop} step="100" class="dual-range-slider" aria-label="Slider Batas Maksimum Populasi" />
+        <input type="range" id="minPopSlider" class="dual-range-slider">
+        <input type="range" id="maxPopSlider" class="dual-range-slider">
       </div>
     </div>
-
     <div class="filter-group">
-      <label>
-        <span class="inline-icon" style="background-image: url({iconAdjustments});"></span>
-        Filter % Nasional
-      </label>
+      <label><span class="inline-icon" id="iconAdj2"></span>% Nasional</label>
       <div class="range-inputs">
-        <input type="number" bind:value={minPercent} min="0" max="100" step="0.1" aria-label="Batas Minimum Persentase" />
-        <span> - </span>
-        <input type="number" bind:value={maxPercent} min="0" max="100" step="0.1" aria-label="Batas Maksimum Persentase" />
+        <input type="number" id="minPctInput" step="0.1">
+        <span>-</span>
+        <input type="number" id="maxPctInput" step="0.1">
       </div>
       <div class="slider-wrapper">
-        <input type="range" bind:value={minPercent} min="0" max="100" step="0.5" class="dual-range-slider" aria-label="Slider Batas Minimum Persentase" />
-        <input type="range" bind:value={maxPercent} min="0" max="100" step="0.5" class="dual-range-slider" aria-label="Slider Batas Maksimum Persentase" />
+        <input type="range" id="minPctSlider" class="dual-range-slider" step="0.5">
+        <input type="range" id="maxPctSlider" class="dual-range-slider" step="0.5">
       </div>
     </div>
   </div>
 
-  <!-- Panel Kontrol Interaktivitas Atas (Pengurutan Eksplisit dengan Heroicons CDN) -->
   <div class="interactive-controls">
     <div class="sort-control-group">
-      <label id="sortSelectLabel" for="sortSelect">
-        <span class="inline-icon" style="background-image: url({iconSort});"></span>
-        Atur Urutan Data:
-      </label>
-      <div class="input-with-icon">
-        <span class="prefix-icon" style="background-image: url({iconSort});"></span>
-        <select id="sortSelect" bind:value={currentSortRule} aria-labelledby="sortSelectLabel">
-          <option value="pop-desc">Populasi: Terbesar ke Terkecil</option>
-          <option value="pop-asc">Populasi: Terkecil ke Terbesar</option>
-          <option value="name-asc">Nama Provinsi: Abjad A sampai Z</option>
-          <option value="name-desc">Nama Provinsi: Abjad Z sampai A</option>
-        </select>
-      </div>
+      <label><span class="inline-icon" id="iconSortLabel"></span>Urutan:</label>
+      <select id="sortSelect"></select>
     </div>
-
     <div class="right-meta">
       <label class="toggle-highlight">
-        <input type="checkbox" bind:checked={enableHighlight} />
-        <span class="checkbox-label-text">
-          <span class="inline-icon" style="background-image: url({iconLightBulb});"></span>
-          Highlight Wilayah Ekstrem
-        </span>
+        <input type="checkbox" id="highlightCheckbox" checked>
+        <span><span class="inline-icon" id="iconBulb"></span>Highlight Ekstrem</span>
       </label>
-      <div class="info-stat">
-        Menampilkan <strong>{shownCount}</strong> dari <strong>{provinsiData.length}</strong> provinsi
-      </div>
+      <div class="info-stat" id="infoStat"></div>
     </div>
   </div>
 
   <div class="chart-container">
     <div class="header-row">
       <div class="province-label">Provinsi</div>
-      <div class="bar-label">Visualisasi (↑ semakin panjang)</div>
-      <div class="jumlah-label">Jumlah (ribu jiwa)</div>
+      <div class="bar-label">Visualisasi</div>
+      <div class="jumlah-label">Jumlah (rb)</div>
       <div class="percent-label">% Nasional</div>
     </div>
-
-    <div class="bars-list">
-      {#each sortedFiltered as province}
-  <div class="bar-item {enableHighlight && province.pop === maxPop ? 'highest-highlight' : ''} {enableHighlight && province.pop === minPopData ? 'lowest-highlight' : ''}">
-    
-    <!-- Informasi Nama Provinsi & Tag Region -->
-    <div class="province-name" title={province.name}>
-      <div class="name-text">{province.name}</div>
-      <span class="region-tag">{province.island}</span>
-      
-      <!-- Kondisi Badge Highlight Ekstrem -->
-      {#if enableHighlight && province.pop === maxPop}
-        <span class="badge badge-max">Highest</span>
-      {/if} 
-      
-      {#if enableHighlight && province.pop === minPopData}
-        <span class="badge badge-min">Lowest</span>
-      {/if}
-    </div>
-
-    <!-- Grafik Bar Kemajuan Visual -->
-    <div class="bar-wrapper">
-      <div
-        class="bar {enableHighlight && province.pop === maxPop ? 'bar-max' : ''} {enableHighlight && province.pop === minPopData ? 'bar-min' : ''}"
-        style="width: {(province.pop / maxPop) * 100}%;"
-        title={`${province.name} (${province.island}): ${province.pop.toLocaleString('id-ID')} rb (${getPercent(province.pop).toFixed(2)}%)`}
-      ></div>
-    </div>
-
-    <!-- Nilai Angka Populasi Riil -->
-    <div class="pop-number">
-      {province.pop.toLocaleString('id-ID')} rb
-    </div>
-
-    <!-- Nilai Persentase terhadap Nasional -->
-    <div class="percent-value">
-      {getPercent(province.pop).toFixed(2)}%
-    </div>
-
+    <div id="barsList" class="bars-list"></div>
   </div>
-{:else}
-  <!-- Tampilan State Kosong Jika Data Hasil Filter Tidak Ditemukan -->
-  <div class="no-data">
-    <span class="error-icon" style="background-image: url({iconExclamation});"></span>
-    <span>Tidak ada provinsi yang sesuai dengan filter kontrol Anda.</span>
-  </div>
-{/each}
-    </div>
-  </div>
-
-  <div class="source">
-    Sumber: Jumlah Penduduk Menurut Provinsi di Indonesia, 2024 (BPS) <br>
-    *Data dalam ribuan jiwa
+  <div class="source" style="margin-top:1.5rem; text-align:center; color:#4b5e71;">
+    Sumber: BPS 2024 · Data dalam ribuan jiwa
   </div>
 </div>
 
-<style>
-  :global(*, *::before, *::after) {
-    box-sizing: border-box;
-  }
+<script>
+  (function() {
+    // Data provinsi
+    const provinsiData = [
+      { name: "Aceh", pop: 5554.8, island: "Sumatera" },
+      { name: "Sumatera Utara", pop: 15588.5, island: "Sumatera" },
+      { name: "Sumatera Barat", pop: 5836.2, island: "Sumatera" },
+      { name: "Riau", pop: 6728.1, island: "Sumatera" },
+      { name: "Kep. Riau", pop: 2183.3, island: "Sumatera" },
+      { name: "Jambi", pop: 3724.3, island: "Sumatera" },
+      { name: "Sumatera Selatan", pop: 8837.3, island: "Sumatera" },
+      { name: "Kep. Bangka Belitung", pop: 1531.5, island: "Sumatera" },
+      { name: "Bengkulu", pop: 2112.2, island: "Sumatera" },
+      { name: "Lampung", pop: 9419.6, island: "Sumatera" },
+      { name: "DKI Jakarta", pop: 10684.9, island: "Jawa" },
+      { name: "Jawa Barat", pop: 50345.2, island: "Jawa" },
+      { name: "Banten", pop: 12431.4, island: "Jawa" },
+      { name: "Jawa Tengah", pop: 37892.3, island: "Jawa" },
+      { name: "DI Yogyakarta", pop: 3759.5, island: "Jawa" },
+      { name: "Jawa Timur", pop: 41814.5, island: "Jawa" },
+      { name: "Kalimantan Barat", pop: 5695.5, island: "Kalimantan" },
+      { name: "Kalimantan Tengah", pop: 2809.7, island: "Kalimantan" },
+      { name: "Kalimantan Selatan", pop: 4273.4, island: "Kalimantan" },
+      { name: "Kalimantan Timur", pop: 4045.9, island: "Kalimantan" },
+      { name: "Kalimantan Utara", pop: 739.8, island: "Kalimantan" },
+      { name: "Sulawesi Utara", pop: 2701.8, island: "Sulawesi" },
+      { name: "Gorontalo", pop: 1227.8, island: "Sulawesi" },
+      { name: "Sulawesi Tengah", pop: 3121.8, island: "Sulawesi" },
+      { name: "Sulawesi Selatan", pop: 9463.4, island: "Sulawesi" },
+      { name: "Sulawesi Barat", pop: 1503.2, island: "Sulawesi" },
+      { name: "Sulawesi Tenggara", pop: 2793.1, island: "Sulawesi" },
+      { name: "Bali", pop: 4433.3, island: "Nusa Tenggara & Bali" },
+      { name: "Nusa Tenggara Barat", pop: 5646, island: "Nusa Tenggara & Bali" },
+      { name: "Nusa Tenggara Timur", pop: 5656, island: "Nusa Tenggara & Bali" },
+      { name: "Maluku", pop: 1945.6, island: "Maluku & Papua" },
+      { name: "Maluku Utara", pop: 1355.6, island: "Maluku & Papua" },
+      { name: "Papua Barat", pop: 1205.8, island: "Maluku & Papua" },
+      { name: "Papua", pop: 4542.6, island: "Maluku & Papua" }
+    ];
 
-  .container {
-    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 1.5rem;
-    background: #f8fafc;
-    border-radius: 24px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-  }
+    const totalPop = 281603.8;
+    const maxPop = Math.max(...provinsiData.map(d => d.pop));
+    const minPopData = Math.min(...provinsiData.map(d => d.pop));
 
-  h1 {
-    font-size: 1.8rem;
-    text-align: center;
-    color: #0f3b5f;
-    margin-top: 0;
-    margin-bottom: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
+    // State
+    let searchQuery = "";
+    let minPop = 0;
+    let maxPopFilter = maxPop;
+    let minPercent = 0;
+    let maxPercent = 100;
+    let selectedIsland = "Semua";
+    let currentSortRule = "pop-desc";
+    let enableHighlight = true;
 
-  /* Style CDN Icon Utama */
-  .header-icon {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-  }
+    // DOM elements
+    const searchInput = document.getElementById('searchInput');
+    const islandSelect = document.getElementById('islandSelect');
+    const minPopInput = document.getElementById('minPopInput');
+    const maxPopInput = document.getElementById('maxPopInput');
+    const minPopSlider = document.getElementById('minPopSlider');
+    const maxPopSlider = document.getElementById('maxPopSlider');
+    const minPctInput = document.getElementById('minPctInput');
+    const maxPctInput = document.getElementById('maxPctInput');
+    const minPctSlider = document.getElementById('minPctSlider');
+    const maxPctSlider = document.getElementById('maxPctSlider');
+    const sortSelect = document.getElementById('sortSelect');
+    const highlightCheckbox = document.getElementById('highlightCheckbox');
+    const barsList = document.getElementById('barsList');
+    const infoStat = document.getElementById('infoStat');
+    const totalDisplay = document.getElementById('totalDisplay');
 
-  .subtitle {
-    text-align: center;
-    color: #2c5a7a;
-    margin-bottom: 1.5rem;
-  }
+    // Helper percent
+    function getPercent(pop) { return (pop / totalPop) * 100; }
 
-  /* Inline Icon untuk Label Control */
-  .inline-icon {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    vertical-align: text-bottom;
-    margin-right: 0.25rem;
-    opacity: 0.7;
-  }
+    // Set ikon via background-image
+    function setIcon(el, url) { if(el) el.style.backgroundImage = `url(${url})`; }
+    const baseIcon = "https://unpkg.com/heroicons@2.0.18/24/outline/";
+    setIcon(document.getElementById('iconChart'), baseIcon+"chart-bar.svg");
+    setIcon(document.getElementById('iconSearch1'), baseIcon+"magnifying-glass.svg");
+    setIcon(document.getElementById('iconSearch2'), baseIcon+"magnifying-glass.svg");
+    setIcon(document.getElementById('iconGlobe1'), baseIcon+"globe-asia-australia.svg");
+    setIcon(document.getElementById('iconGlobe2'), baseIcon+"globe-asia-australia.svg");
+    setIcon(document.getElementById('iconAdj1'), baseIcon+"adjustments-horizontal.svg");
+    setIcon(document.getElementById('iconAdj2'), baseIcon+"adjustments-horizontal.svg");
+    setIcon(document.getElementById('iconSortLabel'), baseIcon+"arrows-up-down.svg");
+    setIcon(document.getElementById('iconBulb'), baseIcon+"light-bulb.svg");
 
-  /* Filter Panel Layout Grid */
-  .filters-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1.25fr 1.25fr;
-    gap: 1rem;
-    background: white;
-    padding: 1.25rem;
-    border-radius: 20px;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e2e8f0;
-  }
+    totalDisplay.innerHTML = `Total penduduk Indonesia: <strong>${totalPop.toLocaleString('id-ID')} rb</strong> jiwa`;
 
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-  }
+    // Populate island dropdown
+    const islands = ["Semua", "Sumatera", "Jawa", "Kalimantan", "Sulawesi", "Nusa Tenggara & Bali", "Maluku & Papua"];
+    islandSelect.innerHTML = islands.map(i => `<option value="${i}">${i === "Semua" ? "Semua Wilayah" : "Pulau "+i}</option>`).join('');
+    islandSelect.value = selectedIsland;
 
-  .filter-group label {
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-    color: #1e293b;
-  }
+    sortSelect.innerHTML = `
+      <option value="pop-desc">Populasi Terbesar</option>
+      <option value="pop-asc">Populasi Terkecil</option>
+      <option value="name-asc">Nama A-Z</option>
+      <option value="name-desc">Nama Z-A</option>
+    `;
+    sortSelect.value = currentSortRule;
 
-  /* Struktur Wrapper untuk Input/Select dengan Prefix Icon */
-  .input-with-icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
-
-  .prefix-icon {
-    position: absolute;
-    left: 10px;
-    width: 18px;
-    height: 18px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    pointer-events: none;
-    opacity: 0.5;
-  }
-
-  .filter-group input[type="text"],
-  .input-with-icon select {
-    width: 100%;
-    padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* Beri ruang kiri untuk icon */
-    border: 1px solid #cbd5e1;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    color: #334155;
-    background-color: #f8fafc;
-    height: 38px;
-    transition: all 0.2s ease;
-  }
-
-  .filter-group input[type="number"] {
-    width: 100%;
-    padding: 0.5rem 0.5rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    color: #334155;
-    background-color: #f8fafc;
-    height: 38px;
-    text-align: center;
-  }
-
-  .filter-group input:focus,
-  .input-with-icon select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  }
-
-  .range-inputs {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .range-inputs input {
-    flex: 1;
-    min-width: 50px;
-  }
-
-  .range-inputs span {
-    color: #94a3b8;
-    font-size: 0.85rem;
-  }
-
-  /* Struktur Dual Range Slider */
-  .slider-wrapper {
-    position: relative;
-    height: 12px;
-    margin-top: 0.25rem;
-  }
-
-  .slider-wrapper::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 6px;
-    background-color: #e2e8f0;
-    border-radius: 4px;
-    z-index: 1;
-  }
-
-  .dual-range-slider {
-    position: absolute;
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    background: none;
-    pointer-events: none;
-    top: 50%;
-    transform: translateY(-50%);
-    margin: 0;
-    z-index: 2;
-  }
-
-  .dual-range-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: #3b82f6;
-    border: 2px solid #ffffff;
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  }
-
-  .dual-range-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    background-color: #3b82f6;
-    cursor: pointer;
-    pointer-events: auto;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  }
-
-  /* Baris Kontrol Interaktivitas Atas (Urutan Dropdown & Highlight) */
-  .interactive-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ffffff;
-    padding: 0.75rem 1.25rem;
-    border-radius: 16px;
-    margin-bottom: 1rem;
-    border: 1px solid #e2e8f0;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .sort-control-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .sort-control-group label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #334155;
-    display: flex;
-    align-items: center;
-  }
-
-  .sort-control-group .input-with-icon select {
-    padding: 0.4rem 1rem 0.4rem 2.25rem;
-    border: 2px solid #3b82f6;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1e40af;
-    background-color: #eff6ff;
-    cursor: pointer;
-    height: 36px;
-  }
-
-  .sort-control-group .prefix-icon {
-    left: 12px;
-    opacity: 0.8;
-  }
-
-  .right-meta {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-  }
-
-  .toggle-highlight {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #475569;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .checkbox-label-text {
-    display: flex;
-    align-items: center;
-  }
-
-  .toggle-highlight input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-  }
-
-  .info-stat {
-    font-size: 0.85rem;
-    color: #475569;
-    font-weight: 500;
-  }
-
-  /* Container Tabel Utama */
-  .chart-container {
-    background: white;
-    border-radius: 20px;
-    padding: 1rem 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    border: 1px solid #e2e8f0;
-  }
-
-  .header-row {
-    display: flex;
-    font-weight: 700;
-    padding: 0.75rem 0.5rem;
-    border-bottom: 2px solid #e2e8f0;
-    background-color: #f1f5f9;
-    border-radius: 12px 12px 0 0;
-    font-size: 0.85rem;
-    color: #475569;
-    align-items: center;
-  }
-
-  .province-label { width: 260px; flex-shrink: 0; padding-left: 0.75rem; }
-  .bar-label { flex-grow: 1; padding-left: 1rem; }
-  .jumlah-label { width: 150px; text-align: right; padding-right: 0.5rem; }
-  .percent-label { width: 110px; text-align: right; padding-right: 1rem; }
-
-  .bars-list {
-    max-height: 50vh;
-    overflow-y: auto;
-    scrollbar-width: thin;
-  }
-
-  .bar-item {
-    display: flex;
-    align-items: center;
-    padding: 0.6rem 0.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background-color 0.2s ease;
-  }
-
-  .bar-item:hover {
-    background-color: #f8fafc;
-  }
-
-  .bar-item.highest-highlight { background-color: #f0fdf4; }
-  .bar-item.lowest-highlight { background-color: #fff1f2; }
-
-  .province-name {
-    width: 260px;
-    flex-shrink: 0;
-    padding-left: 0.75rem;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .name-text {
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
-  }
-
-  .region-tag {
-    font-size: 0.65rem;
-    background-color: #e2e8f0;
-    color: #475569;
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    font-weight: 500;
-  }
-
-  .badge {
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 0.1rem 0.4rem;
-    border-radius: 6px;
-    text-transform: uppercase;
-  }
-  .badge-max { background-color: #dcfce7; color: #166534; }
-  .badge-min { background-color: #ffe4e6; color: #991b1b; }
-
-  .bar-wrapper {
-    flex-grow: 1;
-    background-color: #e2e8f0;
-    border-radius: 20px;
-    margin: 0 1rem;
-    height: 16px;
-    overflow: hidden;
-  }
-
-  .bar {
-    background: linear-gradient(90deg, #3b82f6, #1e40af);
-    height: 100%;
-    border-radius: 20px;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 4px;
-  }
-
-  .bar.bar-max { background: linear-gradient(90deg, #4ade80, #166534); }
-  .bar.bar-min { background: linear-gradient(90deg, #f87171, #991b1b); }
-
-  .bar-item:hover .bar {
-    filter: brightness(1.1);
-  }
-
-  .pop-number {
-    width: 150px;
-    text-align: right;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding-right: 0.5rem;
-    color: #334155;
-  }
-
-  .percent-value {
-    width: 110px;
-    text-align: right;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.8rem;
-    background-color: #f1f5f9;
-    padding: 0.25rem 0.6rem;
-    border-radius: 20px;
-    color: #475569;
-    font-weight: 500;
-  }
-
-  /* Style View Jika Data Kosong Lengkap dengan Icon Peringatan */
-  .no-data {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    text-align: center;
-    padding: 3rem;
-    color: #ef4444;
-    background: #fee2e2;
-    border-radius: 20px;
-    margin: 1rem;
-    font-weight: 500;
-  }
-
-  .error-icon {
-    display: block;
-    width: 40px;
-    height: 40px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-  }
-
-  .source {
-    margin-top: 1.5rem;
-    text-align: center;
-    font-size: 0.75rem;
-    color: #64748b;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 1rem;
-    line-height: 1.5;
-  }
-
-  /* Responsive Media Queries */
-  @media (max-width: 1100px) {
-    .filters-panel {
-      grid-template-columns: 1fr 1fr;
+    // Sync functions
+    function syncFromSlidersToInputs() {
+      minPop = parseFloat(minPopSlider.value);
+      maxPopFilter = parseFloat(maxPopSlider.value);
+      minPercent = parseFloat(minPctSlider.value);
+      maxPercent = parseFloat(maxPctSlider.value);
+      minPopInput.value = minPop;
+      maxPopInput.value = maxPopFilter;
+      minPctInput.value = minPercent;
+      maxPctInput.value = maxPercent;
+      applyAll();
     }
-  }
 
-  @media (max-width: 840px) {
-    .interactive-controls {
-      flex-direction: column;
-      align-items: flex-start;
+    function syncFromInputsToSliders() {
+      let minP = parseFloat(minPopInput.value) || 0;
+      let maxP = parseFloat(maxPopInput.value) || maxPop;
+      let minPct = parseFloat(minPctInput.value) || 0;
+      let maxPct = parseFloat(maxPctInput.value) || 100;
+      if (minP > maxP) minP = maxP;
+      if (minPct > maxPct) minPct = maxPct;
+      minPop = minP; maxPopFilter = maxP; minPercent = minPct; maxPercent = maxPct;
+      minPopSlider.value = minPop;
+      maxPopSlider.value = maxPopFilter;
+      minPctSlider.value = minPercent;
+      maxPctSlider.value = maxPercent;
+      minPopInput.value = minPop;
+      maxPopInput.value = maxPopFilter;
+      minPctInput.value = minPercent;
+      maxPctInput.value = maxPercent;
+      applyAll();
     }
-    .right-meta {
-      width: 100%;
-      justify-content: space-between;
-    }
-    .province-label, .province-name { width: 180px; font-size: 0.8rem; }
-    .name-text { max-width: 100px; }
-    .region-tag, .badge { display: none; }
-    .jumlah-label, .pop-number { width: 120px; font-size: 0.8rem; }
-    .percent-label, .percent-value { width: 85px; font-size: 0.75rem; }
-  }
 
-  @media (max-width: 600px) {
-    .filters-panel {
-      grid-template-columns: 1fr;
+    function applyAll() {
+      renderChart();
     }
-    .bar-label, .bar-wrapper { 
-      display: none; 
+
+    function getFilteredAndSorted() {
+      let filtered = provinsiData.filter(prov => {
+        const matchName = prov.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchPop = prov.pop >= minPop && prov.pop <= maxPopFilter;
+        const pct = getPercent(prov.pop);
+        const matchPct = pct >= minPercent && pct <= maxPercent;
+        const matchIsland = selectedIsland === "Semua" || prov.island === selectedIsland;
+        return matchName && matchPop && matchPct && matchIsland;
+      });
+
+      return [...filtered].sort((a,b) => {
+        if (currentSortRule === "pop-desc") return b.pop - a.pop;
+        if (currentSortRule === "pop-asc") return a.pop - b.pop;
+        if (currentSortRule === "name-asc") return a.name.localeCompare(b.name);
+        if (currentSortRule === "name-desc") return b.name.localeCompare(a.name);
+        return 0;
+      });
     }
-    .province-label, .province-name { width: 45%; }
-    .jumlah-label, .pop-number { width: 35%; }
-    .percent-label, .percent-value { width: 20%; }
-  }
-</style>
+
+    function renderChart() {
+      const data = getFilteredAndSorted();
+      infoStat.innerHTML = `Menampilkan <strong>${data.length}</strong> dari <strong>${provinsiData.length}</strong> provinsi`;
+
+      if (data.length === 0) {
+        barsList.innerHTML = `<div class="no-data"><span>⚠️ Tidak ada provinsi yang sesuai filter.</span></div>`;
+        return;
+      }
+
+      let html = '';
+      data.forEach(prov => {
+        const isMax = enableHighlight && prov.pop === maxPop;
+        const isMin = enableHighlight && prov.pop === minPopData;
+        const barWidth = (prov.pop / maxPop) * 100;
+        const bgClass = (isMax ? 'highest-highlight' : '') + (isMin ? ' lowest-highlight' : '');
+        const barClass = (isMax ? 'bar-max' : '') + (isMin ? ' bar-min' : '');
+        const badgeHtml = (isMax ? '<span class="badge badge-max">Highest</span>' : '') + 
+                          (isMin ? '<span class="badge badge-min">Lowest</span>' : '');
+        
+        html += `
+          <div class="bar-item ${bgClass.trim()}">
+            <div class="province-name">
+              <span class="name-text">${prov.name}</span>
+              <span class="region-tag">${prov.island}</span>
+              ${badgeHtml}
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar ${barClass.trim()}" style="width:${barWidth}%;"></div>
+            </div>
+            <div class="pop-number">${prov.pop.toLocaleString('id-ID')} rb</div>
+            <div class="percent-value">${getPercent(prov.pop).toFixed(2)}%</div>
+          </div>
+        `;
+      });
+      barsList.innerHTML = html;
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', (e) => { searchQuery = e.target.value; applyAll(); });
+    islandSelect.addEventListener('change', (e) => { selectedIsland = e.target.value; applyAll(); });
+    highlightCheckbox.addEventListener('change', (e) => { enableHighlight = e.target.checked; applyAll(); });
+    sortSelect.addEventListener('change', (e) => { currentSortRule = e.target.value; applyAll(); });
+
+    minPopSlider.addEventListener('input', syncFromSlidersToInputs);
+    maxPopSlider.addEventListener('input', syncFromSlidersToInputs);
+    minPctSlider.addEventListener('input', syncFromSlidersToInputs);
+    maxPctSlider.addEventListener('input', syncFromSlidersToInputs);
+
+    minPopInput.addEventListener('change', syncFromInputsToSliders);
+    maxPopInput.addEventListener('change', syncFromInputsToSliders);
+    minPctInput.addEventListener('change', syncFromInputsToSliders);
+    maxPctInput.addEventListener('change', syncFromInputsToSliders);
+
+    // Init slider attributes & values
+    minPopSlider.min = 0; minPopSlider.max = maxPop; minPopSlider.step = 100; minPopSlider.value = 0;
+    maxPopSlider.min = 0; maxPopSlider.max = maxPop; maxPopSlider.step = 100; maxPopSlider.value = maxPop;
+    minPctSlider.min = 0; minPctSlider.max = 100; minPctSlider.step = 0.5; minPctSlider.value = 0;
+    maxPctSlider.min = 0; maxPctSlider.max = 100; maxPctSlider.step = 0.5; maxPctSlider.value = 100;
+    minPopInput.value = 0; maxPopInput.value = maxPop; minPctInput.value = 0; maxPctInput.value = 100;
+
+    renderChart();
+  })();
+</script>
+</body>
+</html>
