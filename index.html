@@ -231,33 +231,50 @@
 
     <div class="bars-list">
       {#each sortedFiltered as province}
-        <div class="bar-item {enableHighlight && province.pop === maxPop ? 'highest-highlight' : ''} {enableHighlight && province.pop === minPopData ? 'lowest-highlight' : ''}">
-          <div class="province-name" title={province.name}>
-            <div class="name-text">{province.name}</div>
-            <span class="region-tag">{province.island}</span>
-            {#if enableHighlight && province.pop === maxPop}
-              <span class="badge badge-max">Highest</span>
-            {/if}
-            {#if enableHighlight && province.pop === minPopData}
-              <span class="badge badge-min">Lowest</span>
-            {/if}
-          </div>
-          <div class="bar-wrapper">
-            <div
-              class="bar {enableHighlight && province.pop === maxPop ? 'bar-max' : ''} {enableHighlight && province.pop === minPopData ? 'bar-min' : ''}"
-              style="width: {(province.pop / maxPop) * 100}%;"
-              title={`${province.name} (${province.island}): ${province.pop.toLocaleString('id-ID')} rb (${getPercent(province.pop).toFixed(2)}%)`}
-            ></div>
-          </div>
-          <div class="pop-number">{province.pop.toLocaleString('id-ID')} rb</div>
-          <div class="percent-value">{getPercent(province.pop).toFixed(2)}%</div>
-        </div>
-      {:else}
-        <div class="no-data">
-          <span class="error-icon" style="background-image: url({iconExclamation});"></span>
-          <span>Tidak ada provinsi yang sesuai dengan filter kontrol Anda.</span>
-        </div>
-      {/each}
+  <div class="bar-item {enableHighlight && province.pop === maxPop ? 'highest-highlight' : ''} {enableHighlight && province.pop === minPopData ? 'lowest-highlight' : ''}">
+    
+    <!-- Informasi Nama Provinsi & Tag Region -->
+    <div class="province-name" title={province.name}>
+      <div class="name-text">{province.name}</div>
+      <span class="region-tag">{province.island}</span>
+      
+      <!-- Kondisi Badge Highlight Ekstrem -->
+      {#if enableHighlight && province.pop === maxPop}
+        <span class="badge badge-max">Highest</span>
+      {/if} 
+      
+      {#if enableHighlight && province.pop === minPopData}
+        <span class="badge badge-min">Lowest</span>
+      {/if}
+    </div>
+
+    <!-- Grafik Bar Kemajuan Visual -->
+    <div class="bar-wrapper">
+      <div
+        class="bar {enableHighlight && province.pop === maxPop ? 'bar-max' : ''} {enableHighlight && province.pop === minPopData ? 'bar-min' : ''}"
+        style="width: {(province.pop / maxPop) * 100}%;"
+        title={`${province.name} (${province.island}): ${province.pop.toLocaleString('id-ID')} rb (${getPercent(province.pop).toFixed(2)}%)`}
+      ></div>
+    </div>
+
+    <!-- Nilai Angka Populasi Riil -->
+    <div class="pop-number">
+      {province.pop.toLocaleString('id-ID')} rb
+    </div>
+
+    <!-- Nilai Persentase terhadap Nasional -->
+    <div class="percent-value">
+      {getPercent(province.pop).toFixed(2)}%
+    </div>
+
+  </div>
+{:else}
+  <!-- Tampilan State Kosong Jika Data Hasil Filter Tidak Ditemukan -->
+  <div class="no-data">
+    <span class="error-icon" style="background-image: url({iconExclamation});"></span>
+    <span>Tidak ada provinsi yang sesuai dengan filter kontrol Anda.</span>
+  </div>
+{/each}
     </div>
   </div>
 
